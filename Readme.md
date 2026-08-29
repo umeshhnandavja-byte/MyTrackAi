@@ -1,4 +1,3 @@
-```markdown
 # MyTrack 🚀
 
 A modern, high-performance productivity and habit-tracking dashboard built to help developers, creators, and high-achievers take absolute control of their routines, streaks, and long-term goals. Built for the modern web with Next.js, Tailwind CSS, and Framer Motion.
@@ -71,8 +70,6 @@ A modern, high-performance productivity and habit-tracking dashboard built to he
 ├── tailwind.config.js
 ├── tsconfig.json
 └── package.json
-
-```
 
 ---
 
@@ -169,7 +166,3 @@ pnpm install --no-frozen-lockfile
 ## 📄 License
 
 This project is licensed under the MIT License — see the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
-
-```
-
-```
