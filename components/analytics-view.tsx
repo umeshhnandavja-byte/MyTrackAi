@@ -197,7 +197,6 @@ export function PlatformTrends() {
         github: (profile?.github || localStorage.getItem('mytrack_github_handle') || '').trim(),
         leetcode: (profile?.leetcode || localStorage.getItem('mytrack_leetcode_handle') || '').trim(),
         codeforces: (profile?.codeforces || localStorage.getItem('mytrack_codeforces_handle') || '').trim(),
-        codechef: (profile?.codechef || localStorage.getItem('mytrack_codechef_handle') || '').trim()
       })
       setIsHandlesLoaded(true)
     }
@@ -331,36 +330,6 @@ export function PlatformTrends() {
         }
       } else {
         setData(prev => ({ ...prev, github: { ...prev.github, streak: 'Not connected' } }))
-      }
-
-      // 4. CodeChef
-      if (handles.codechef) {
-        setData(prev => ({ ...prev, codechef: { ...prev.codechef, streak: 'Syncing...' } }))
-        const ccData = await fetchJson(`https://cp-rating-api.vercel.app/codechef/${handles.codechef}`)
-        
-        if (isActive && ccData && (ccData.problemsSolved !== undefined || ccData.rating !== undefined)) {
-          const total = Number(ccData.problemsSolved) || 0
-          const timestamps: Record<string, number> = {}
-          
-          // Distribute recent activity or map available data points cleanly
-          const today = new Date()
-          if (total > 0) {
-            // Allocate recent contributions proportionally across the last few weeks
-            for (let i = 0; i < Math.min(total, 60); i++) {
-              const d = new Date(today)
-              d.setDate(d.getDate() - (i % 30))
-              const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-              timestamps[dateStr] = (timestamps[dateStr] || 0) + 1
-            }
-          }
-
-          const ratingText = ccData.rating ? `Rating: ${ccData.rating} (${ccData.stars || '2★'})` : 'Live synced'
-          setData(prev => ({ ...prev, codechef: { total, streak: ratingText, timestamps } }))
-        } else if (isActive) {
-          setData(prev => ({ ...prev, codechef: { ...prev.codechef, streak: 'Handle not found' } }))
-        }
-      } else {
-        setData(prev => ({ ...prev, codechef: { ...prev.codechef, streak: 'Not connected' } }))
       }
     }
 

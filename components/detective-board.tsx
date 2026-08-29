@@ -147,12 +147,12 @@ export function DetectiveBoard() {
       <div 
         ref={scrollContainerRef}
         onWheel={(event) => { if (event.ctrlKey || event.metaKey) { event.preventDefault(); setZoom((value) => Math.min(2.5, Math.max(0.5, value - event.deltaY * 0.002))) } }} 
-        onTouchStart={(event) => event.touches.length === 2 && setPinch({ distance: distance(event.touches), zoom })} 
-        onTouchMove={(event) => { if (event.touches.length === 2 && pinch) { event.preventDefault(); setZoom(Math.min(2.5, Math.max(0.5, pinch.zoom * distance(event.touches) / pinch.distance))) } }} 
+        onTouchStart={(event) => event.touches.length === 2 && setPinch({ distance: distance(event.touches as unknown as TouchList), zoom })} 
+        onTouchMove={(event) => { if (event.touches.length === 2 && pinch) { event.preventDefault(); setZoom(Math.min(2.5, Math.max(0.5, pinch.zoom * distance(event.touches as unknown as TouchList) / pinch.distance))) } }} 
         onTouchEnd={() => setPinch(null)} 
         className={cn('relative mt-8 min-h-[420px] overflow-auto rounded-xl border border-border/40 bg-background/20', expanded && 'min-h-[calc(100vh-12rem)]')} 
         style={{ height: expanded ? 'calc(100vh - 12rem)' : 640 }}
-      >
+        >
         <div className="relative board-dots" style={{ width: canvasSize * zoom, height: canvasSize * zoom, touchAction: 'none' }}>
           <div className="absolute left-0 top-0" style={{ width: canvasSize, height: canvasSize, transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
             <svg className="pointer-events-none absolute inset-0 overflow-visible" width="100%" height="100%" aria-hidden="true">

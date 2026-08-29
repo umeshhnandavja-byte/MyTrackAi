@@ -204,7 +204,7 @@ export function MyTrackDashboard({
                 )}
                 </div>
               </AnimatePresence>
-<div className="mt-6"><TodoPreview onOpen={() => setActiveView('To-Do')} /></div></section><div className="flex flex-col gap-3"><DashboardMap activeTasks={tasks} /><UpcomingContests /></div>      </section>
+<div className="mt-6"><TodoPreview onOpen={() => setActiveView('To-Do')} /></div></section><div className="flex flex-col gap-3"><DashboardMap/><UpcomingContests /></div>      </section>
           </main>}
         
         <Dialog open={popup !== null} onOpenChange={(open) => !open && setPopup(null)}><DialogContent className="border-border bg-card/90 backdrop-blur-2xl">

@@ -16,8 +16,8 @@ export function CommandCenter() {
   const [saved, setSaved] = useState(false)
 
   // Grab existing categories to check if it already exists
-  const { categories } = useCategories ? useCategories() : { categories: [] }
-
+  const categories = typeof useCategories === 'function' ? useCategories() : []
+  
   async function handleSend() {
     if (!prompt.trim() || loading) return
 

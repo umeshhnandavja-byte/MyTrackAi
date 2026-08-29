@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { addCategory, removeCategory, updateCategory, useCategories } from '@/lib/category-store'
 import { saveProfile, useProfile } from '@/lib/profile-store'
+import { removeCategoryAndTasks } from '@/lib/task-store'
 
 const tabs = [['Profile', UserRound], ['Platform Integrations', Plug], ['Categories', Tag]] as const
 
@@ -178,7 +179,7 @@ export function SettingsPanels() {
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-medium">{category.name}</span>
                         </div>
-                        <Button variant="ghost" size="icon" aria-label={`Delete ${category.name}`} onClick={() => removeCategory(category.id)}><Trash2 className="size-4" /></Button>
+                        <Button variant="ghost" size="icon" aria-label={`Delete ${category.name}`} onClick={() => removeCategoryAndTasks(category.name, category.id)}><Trash2 className="size-4" /></Button>
                       </div>
                       
                       <div className="flex flex-wrap gap-2">

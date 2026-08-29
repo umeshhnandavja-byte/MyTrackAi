@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { removeCategory } from './category-store'
 
 export type TrackTask = {
   id: string | number
@@ -225,5 +226,26 @@ export async function loadTasks() {
     }))
     saveLocal() 
     notify() 
+  }
+}
+
+export async function removeCategoryAndTasks(categoryName: string, categoryId: string) {
+  // 1. Remove the category locally and in Supabase (using your existing category removal)
+  await removeCategory(categoryId)
+
+  // 2. Filter out tasks associated with this category locally
+  tasks = tasks.filter(task => task.program?.toLowerCase() !== categoryName.toLowerCase())
+  saveLocal()
+  notify()
+
+  // 3. Delete tasks from Supabase tied to this program/category
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    await supabase
+      .from('Task')
+      .delete()
+      .eq('user_id', user.id)
+      .ilike('program', categoryName) // Matches the category/program name case-insensitively
   }
 }

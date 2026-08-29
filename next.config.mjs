@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  //devIndicators: false, //uncomment this line after
+  devIndicators: false, //uncomment this line after
   typescript: {
     ignoreBuildErrors: true,
   },
