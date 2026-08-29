@@ -1,48 +1,229 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export type TrackTask = {
-  id: number
+  id: string | number
   name: string
   program: string
   cadence: string
+  days?: string[]
   streak: number
   completed: boolean
+  lastCompletedAt?: string | null // <--- We track the exact time it was done
 }
 
-const initialTasks: TrackTask[] = [
-  { id: 1, name: 'Complete morning workout', program: 'Health', cadence: 'Daily', streak: 12, completed: false },
-  { id: 2, name: 'Solve 2 algorithm problems', program: 'Logic / CP', cadence: 'Daily', streak: 8, completed: false },
-  { id: 3, name: 'Ship the dashboard component', program: 'Software Dev', cadence: 'Weekly', streak: 21, completed: false },
-  { id: 4, name: "Plan tomorrow's priorities", program: 'Planning', cadence: 'Daily', streak: 3, completed: false },
-  { id: 5, name: 'Review one system design concept', program: 'Software Dev', cadence: 'Weekly', streak: 6, completed: false },
-  { id: 6, name: 'Complete a CodeSync challenge', program: 'Logic / CP', cadence: 'Daily', streak: 4, completed: false },
-]
+const STORAGE_KEY = 'mytrack_local_tasks'
 
-let tasks = initialTasks
+// 1. THE MAGIC FUNCTION: Checks if the task is done for its current cycle!
+function checkIsCompleted(cadence: string, lastCompletedAt?: string | null): boolean {
+  if (!lastCompletedAt) return false;
+
+  const last = new Date(lastCompletedAt);
+  const now = new Date();
+
+  if (cadence === 'Daily' || cadence === 'Weekly') {
+    // Must be completed exactly today
+    return last.toDateString() === now.toDateString();
+  }
+  if (cadence === 'Monthly') {
+    // Must be completed in the current month AND year
+    return last.getMonth() === now.getMonth() && last.getFullYear() === now.getFullYear();
+  }
+  if (cadence === 'Yearly') {
+    // Must be completed in the current year
+    return last.getFullYear() === now.getFullYear();
+  }
+  return false;
+}
+
+// 2. Initialize from local storage, but auto-reset if a new day/month started!
+let tasks: TrackTask[] = []
+if (typeof window !== 'undefined') {
+  const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  tasks = stored.map((t: TrackTask) => ({
+    ...t,
+    completed: checkIsCompleted(t.cadence, t.lastCompletedAt)
+  }))
+}
+
 const listeners = new Set<() => void>()
 const notify = () => listeners.forEach((listener) => listener())
+
+function saveLocal() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
+  }
+}
+
+const emptyTasks: TrackTask[] = []
 
 export function useTasks() {
   return useSyncExternalStore(
     (listener) => { listeners.add(listener); return () => listeners.delete(listener) },
     () => tasks,
-    () => initialTasks,
+    () => emptyTasks 
   )
 }
 
-export function setTaskCompleted(id: number, completed: boolean) {
-  tasks = tasks.map((task) => task.id === id ? { ...task, completed } : task)
-  notify()
+export async function setTaskCompleted(id: number | string, completed: boolean) {
+  const nowIso = completed ? new Date().toISOString() : null;
+  const todayStr = new Date().toDateString();
+
+  tasks = tasks.map((task) => {
+    if (task.id !== id) return task;
+
+    // Check if it was already completed earlier today
+    const wasCompletedToday = task.lastCompletedAt 
+      ? new Date(task.lastCompletedAt).toDateString() === todayStr 
+      : false;
+
+    let newStreak = task.streak;
+    if (completed && !wasCompletedToday) {
+      newStreak += 1; // Increment streak only once per day
+    } else if (!completed && wasCompletedToday && newStreak > 0) {
+      newStreak -= 1; // Roll back if unchecked
+    }
+
+    return { 
+      ...task, 
+      completed,
+      streak: newStreak,
+      lastCompletedAt: nowIso 
+    };
+  });
+  
+  saveLocal();
+  notify();
+
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (user) {
+    const updatedTask = tasks.find(t => t.id === id);
+    if (updatedTask) {
+      await supabase
+        .from('Task')
+        .update({ 
+          lastCompletedAt: nowIso,
+          currentStreak: updatedTask.streak 
+        })
+        .eq('id', id);
+    }
+  }
 }
 
-export function addTask(task: Omit<TrackTask, 'id' | 'completed'>) {
-  tasks = [...tasks, { ...task, id: Date.now(), completed: false }]
+export async function addTask(taskData: Omit<TrackTask, 'id' | 'completed' | 'lastCompletedAt'>) {
+  const newId = Date.now().toString()
+  const newTask: TrackTask = {
+    id: newId,
+    ...taskData,
+    completed: false,
+    lastCompletedAt: null
+  }
+  
+  tasks = [...tasks, newTask]
+  saveLocal()
   notify()
+
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 
+
+  const { data, error } = await supabase
+    .from('Task')
+    .insert({
+      title: taskData.name,
+      category: taskData.program,
+      frequency: taskData.cadence,
+      days: taskData.days || null,
+      currentStreak: taskData.streak,
+      user_id: user.id,
+    })
+    .select()
+    .single()
+
+  if (data && !error) {
+    tasks = tasks.map((t) => t.id === newId ? { 
+      id: data.id, 
+      name: data.title, 
+      program: data.category, 
+      cadence: data.frequency, 
+      days: data.days || [],
+      streak: data.currentStreak, 
+      completed: t.completed,
+      lastCompletedAt: t.lastCompletedAt
+    } : t)
+    saveLocal()
+    notify()
+  }
 }
 
-export function removeTask(id: number) {
+export async function removeTask(id: number | string) {
   tasks = tasks.filter((task) => task.id !== id)
+  saveLocal()
   notify()
+
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (user) {
+    await supabase.from('Task').delete().eq('id', id)
+  }
+}
+
+export async function loadTasks() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    // Make sure we re-evaluate completion even if they are offline
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    tasks = stored.map((t: TrackTask) => ({
+      ...t,
+      completed: checkIsCompleted(t.cadence, t.lastCompletedAt)
+    }))
+    notify()
+    return
+  }
+
+  const localTasks: TrackTask[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  const unsyncedTasks = localTasks.filter(t => typeof t.id === 'string' && !t.id.includes('-'))
+
+  if (unsyncedTasks.length > 0) {
+    const tasksToInsert = unsyncedTasks.map(t => ({
+      title: t.name,
+      category: t.program,
+      frequency: t.cadence,
+      days: t.days || null,
+      currentStreak: t.streak,
+      user_id: user.id,
+      lastCompletedAt: t.lastCompletedAt || null 
+    }))
+    
+    await supabase.from('Task').insert(tasksToInsert)
+    localStorage.removeItem(STORAGE_KEY) 
+  }
+
+  const { data, error } = await supabase
+    .from('Task')
+    .select('*')
+    .order('created_at', { ascending: true })
+
+  if (data && !error) {
+    tasks = data.map((dbTask) => ({
+      id: dbTask.id,
+      name: dbTask.title,
+      program: dbTask.category,
+      cadence: dbTask.frequency,
+      days: dbTask.days || [],
+      streak: dbTask.currentStreak,
+      lastCompletedAt: dbTask.lastCompletedAt,
+      // 4. Determine if it should be checked right now!
+      completed: checkIsCompleted(dbTask.frequency, dbTask.lastCompletedAt),
+    }))
+    saveLocal() 
+    notify() 
+  }
 }
