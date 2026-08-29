@@ -1,8 +1,7 @@
 'use client'
 
-// Shared dashboard-style task creation dialog.
 import { useState, useEffect } from 'react'
-import { Check, Code2, Flame, GitBranch, GitFork, Layers3, Target, Terminal, Zap, Heart, Repeat2, Brain, Dumbbell } from 'lucide-react'
+import { Check, Code2, Flame, GitBranch, GitFork, Layers3, Target, Terminal, Zap, Heart, Repeat2, Brain, Dumbbell, PlusCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -11,9 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 import { addTask } from '@/lib/task-store'
-import { useCategories } from '@/lib/category-store'
+import { useCategories, addCategory } from '@/lib/category-store'
 
-// 1. Updated to use 3-letter abbreviations for the Database AND the UI
 const weekdays = [
   { id: 'Sun', label: 'Sun' },
   { id: 'Mon', label: 'Mon' },
@@ -40,18 +38,33 @@ export function AddTaskDialog() {
   
   const [frequency, setFrequency] = useState('daily')
   const [tracking, setTracking] = useState('manual')
-  
-  // 2. Default state now uses the 3-letter abbreviations
   const [days, setDays] = useState(['Mon', 'Wed', 'Fri'])
-  
   const [category, setCategory] = useState('')
   const [title, setTitle] = useState('')
+
+  // New Category State
+  const [isAddingCategory, setIsAddingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryIcon, setNewCategoryIcon] = useState<string>('target') // Default icon selection
 
   useEffect(() => {
     if (open && storeCategories.length > 0 && !category) {
       setCategory(storeCategories[0].name)
     }
   }, [open, storeCategories, category])
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      setIsAddingCategory(false)
+      return
+    }
+    // Pass the selected icon to your store
+    await addCategory(newCategoryName, newCategoryIcon)
+    setCategory(newCategoryName.trim()) 
+    setNewCategoryName('')
+    setNewCategoryIcon('target') // Reset
+    setIsAddingCategory(false)
+  }
 
   const createTask = () => { 
     if (!title.trim()) return; 
@@ -111,7 +124,6 @@ export function AddTaskDialog() {
           {frequency === 'weekly' && (
             <div className="flex flex-col gap-2">
               <Label>Repeat on</Label>
-              {/* 3. Updated ToggleGroup to use wrapping and pill-shapes for 3-letter words */}
               <ToggleGroup value={days} onValueChange={setDays} className="flex flex-wrap justify-start gap-2">
                 <>
                   {weekdays.map((day) => (
@@ -157,13 +169,64 @@ export function AddTaskDialog() {
           )}
           
           <div className="flex flex-col gap-3">
-            <div>
-              <Label>Category mapping</Label>
-              <p className="mt-1 text-xs text-muted-foreground">Choose the region that receives this task&apos;s XP.</p>
+            <div className="flex items-start justify-between">
+              <div>
+                <Label>Category mapping</Label>
+                <p className="mt-1 text-xs text-muted-foreground">Choose the region that receives this task&apos;s XP.</p>
+              </div>
+              {!isAddingCategory && (
+                <button 
+                  type="button" 
+                  onClick={() => setIsAddingCategory(true)}
+                  className="mt-1 flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <PlusCircle className="size-3.5" /> Add category
+                </button>
+              )}
             </div>
+
+            {isAddingCategory && (
+              <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/40 p-3">
+                <div className="flex items-center gap-2">
+                  <Input 
+                    autoFocus
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateCategory())}
+                    placeholder="New category name..." 
+                    className="h-9 flex-1 border-border/50 bg-background/50 px-2 text-sm shadow-none focus-visible:ring-1" 
+                  />
+                  <Button type="button" onClick={handleCreateCategory} size="sm" className="h-9 rounded-lg px-4 text-xs">Save</Button>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => { setIsAddingCategory(false); setNewCategoryName(''); setNewCategoryIcon('target') }} className="size-9 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground">
+                    <X className="size-4" />
+                  </Button>
+                </div>
+                
+                {/* Logo Picker */}
+                <div className="flex flex-wrap items-center gap-1.5 pl-1">
+                  {Object.entries(categoryIcons).map(([key, Icon]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      title={key}
+                      onClick={() => setNewCategoryIcon(key)}
+                      className={cn(
+                        "flex size-7 items-center justify-center rounded-md border transition-colors",
+                        newCategoryIcon === key 
+                          ? "border-foreground bg-foreground text-background" 
+                          : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      )}
+                    >
+                      <Icon className="size-3.5" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-2 sm:grid-cols-2">
-              {storeCategories.length === 0 && (
-                <div className="col-span-2 text-sm text-muted-foreground">No categories available. Add one in settings!</div>
+              {storeCategories.length === 0 && !isAddingCategory && (
+                <div className="col-span-2 text-sm text-muted-foreground">No categories available. Add one to continue!</div>
               )}
               {storeCategories.map((cat) => {
                 const Icon = categoryIcons[cat.image || ''] || Target

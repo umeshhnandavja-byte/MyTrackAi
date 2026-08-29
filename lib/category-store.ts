@@ -40,11 +40,12 @@ export function useCategories() {
   )
 }
 
-export async function addCategory(name: string) {
+export async function addCategory(name: string, image?: string) {
   const trimmed = name.trim()
   if (!trimmed || categories.some((category) => category.name.toLowerCase() === trimmed.toLowerCase())) return
   
-  const nextLogo = defaultCategoryLogos.find((logo) => !categories.some((category) => category.image === logo)) || defaultCategoryLogos[categories.length % defaultCategoryLogos.length]
+  // Use the passed image, or fallback to the auto-selector if none was passed
+  const nextLogo = image || defaultCategoryLogos.find((logo) => !categories.some((category) => category.image === logo)) || defaultCategoryLogos[categories.length % defaultCategoryLogos.length]
   
   // 1. Save locally with a temporary ID (Optimistic & Offline)
   const newId = Date.now().toString()
@@ -52,7 +53,7 @@ export async function addCategory(name: string) {
     id: newId, 
     name: trimmed, 
     value: 0, 
-    image: nextLogo
+    image: nextLogo // Uses the chosen (or fallback) logo here
   }
 
   categories = [...categories, newCategory]
@@ -70,7 +71,7 @@ export async function addCategory(name: string) {
       name: newCategory.name, 
       value: newCategory.value, 
       image: newCategory.image,
-      user_id: user.id // <--- CRITICAL: Ties category to this specific user!
+      user_id: user.id 
     }])
     .select()
     .single()
