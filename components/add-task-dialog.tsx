@@ -112,7 +112,7 @@ export function AddTaskDialog() {
             <div className="flex flex-col gap-2">
               <Label>Repeat on</Label>
               {/* 3. Updated ToggleGroup to use wrapping and pill-shapes for 3-letter words */}
-              <ToggleGroup type="multiple" value={days} onValueChange={setDays} className="flex flex-wrap justify-start gap-2">
+              <ToggleGroup value={days} onValueChange={setDays} className="flex flex-wrap justify-start gap-2">
                 <>
                   {weekdays.map((day) => (
                     <ToggleGroupItem 

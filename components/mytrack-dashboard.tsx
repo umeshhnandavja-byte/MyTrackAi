@@ -183,7 +183,7 @@ export function MyTrackDashboard({
               tasksForToday.filter((task) => !task.completed).map((task, index) => { 
               const Icon = task.icon; 
               return (
-              <motion.div key={task.name} layout initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 80, height: 0, marginBottom: -8, transition: { duration: 0.35, ease: 'easeInOut' } }} whileHover={{ x: 3 }} className={cn('flex items-center gap-4 rounded-xl border border-border/70 bg-card/45 px-4 py-3.5 backdrop-blur-xl transition-colors hover:bg-card/75', task.completed && 'opacity-60')}>
+              <motion.div key={task.id} layout initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 80, height: 0, marginBottom: -8, transition: { duration: 0.35, ease: 'easeInOut' } }} whileHover={{ x: 3 }} className={cn('flex items-center gap-4 rounded-xl border border-border/70 bg-card/45 px-4 py-3.5 backdrop-blur-xl transition-colors hover:bg-card/75', task.completed && 'opacity-60')}>
               <button aria-label={`Mark ${task.name} ${task.completed ? 'incomplete' : 'complete'}`} onClick={() => setTaskCompleted(task.id, !task.completed)} className={cn('flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors', task.completed ? 'border-foreground bg-foreground text-background' : 'border-muted-foreground/50 hover:border-foreground')}>
               {task.completed && <Check className="size-3.5" />}
               </button>
@@ -207,7 +207,26 @@ export function MyTrackDashboard({
 <div className="mt-6"><TodoPreview onOpen={() => setActiveView('To-Do')} /></div></section><div className="flex flex-col gap-3"><DashboardMap activeTasks={tasks} /><UpcomingContests /></div>      </section>
           </main>}
         
-        <Dialog open={popup !== null} onOpenChange={(open) => !open && setPopup(null)}><DialogContent className="border-border bg-card/90 backdrop-blur-2xl"><DialogHeader><DialogTitle>{popup === 'profile' ? profile.name : popup === 'timer' ? 'Focus timer' : 'AI command center'}</DialogTitle><DialogDescription>{popup === 'profile' ? `Level 12 · ${currentStreak} day streak · 68% weekly consistency.` : popup === 'timer' ? 'A quiet space for a focused work session.' : 'Describe a task and AI will prepare it for your review.'}</DialogDescription></DialogHeader><div className="rounded-xl border border-border bg-background/40 p-4 text-sm text-muted-foreground">{popup === 'profile' ? <><p>{profile.email}</p><p className="mt-2">Member since October 2024. 342 tasks completed across 5 regions.</p></> : popup === 'timer' ? <CustomTimer /> : <CommandCenter />}</div></DialogContent></Dialog>
+        <Dialog open={popup !== null} onOpenChange={(open) => !open && setPopup(null)}><DialogContent className="border-border bg-card/90 backdrop-blur-2xl">
+  <DialogHeader>
+    <DialogTitle>{popup === 'profile' ? profile.name : popup === 'timer' ? 'Focus timer' : 'AI command center'}</DialogTitle>
+    <DialogDescription>
+      {popup === 'profile' ? `Active streak: ${currentStreak} days` : popup === 'timer' ? 'A quiet space for a focused work session.' : 'Describe a task and AI will prepare it for your review.'}
+    </DialogDescription>
+  </DialogHeader>
+  <div className="rounded-xl border border-border bg-background/40 p-4 text-sm text-muted-foreground">
+    {popup === 'profile' ? (
+      <div className="space-y-1">
+        <p className="font-medium text-foreground">{profile.name}</p>
+        <p className="text-xs text-muted-foreground">{profile.email}</p>
+      </div>
+    ) : popup === 'timer' ? (
+      <CustomTimer />
+    ) : (
+      <CommandCenter />
+    )}
+  </div>
+</DialogContent></Dialog>
         </div>
       </div>
     </div>
