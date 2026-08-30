@@ -270,3 +270,27 @@ export async function removeCategoryAndTasks(categoryName: string, categoryId: s
       .ilike('category', categoryName) // Assuming category logic was updated here per your db schema
   }
 }
+
+// ---------------------------------------------------
+// NEW: AUTO-SYNC FUNCTION
+// ---------------------------------------------------
+export async function runAutoSync() {
+  // Find all incomplete tasks that have Auto-Sync enabled
+  const autoTasks = tasks.filter(t => t.tracking === 'auto' && !t.completed && t.platform && t.handle)
+
+  if (autoTasks.length === 0) return
+
+  for (const task of autoTasks) {
+    try {
+      const res = await fetch(`/api/sync?platform=${task.platform}&handle=${task.handle}`)
+      const data = await res.json()
+      
+      // If their submissions today meet or exceed the goal, complete the task automatically!
+      if (data.count >= (task.goal || 1)) {
+        await setTaskCompleted(task.id, true)
+      }
+    } catch (err) {
+      console.error(`Auto-sync failed for task: ${task.name}`, err)
+    }
+  }
+}

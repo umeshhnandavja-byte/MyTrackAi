@@ -4,9 +4,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useCategories, loadCategories} from '@/lib/category-store'
-import { useProfile } from '@/lib/profile-store'
+import { useProfile, loadProfile } from '@/lib/profile-store'
 import { useMapProgressDelayDays } from '@/lib/map-settings-store'
-import { useTasks, setTaskCompleted, loadTasks } from '@/lib/task-store'
+import { useTasks, setTaskCompleted, loadTasks, runAutoSync } from '@/lib/task-store'
 import { setTodoDone, useTodos, loadTodos } from '@/lib/todo-store'
 import { AddTaskDialog } from '@/components/add-task-dialog'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -132,10 +132,18 @@ export function MyTrackDashboard({
   }, [])
   
   useEffect(() => {
-    loadTasks()
-    loadTodos()
-    loadCategories()
-    loadBoard()
+    const initApp = async () => {
+      await loadProfile() // Load true user details
+      await loadCategories()
+      await loadTasks()
+      await loadTodos()
+      await loadBoard()
+      
+      // Check for GitHub/Leetcode updates in the background on refresh!
+      runAutoSync()
+    }
+
+    initApp()
   }, [isAuthenticated])
 
   return (
