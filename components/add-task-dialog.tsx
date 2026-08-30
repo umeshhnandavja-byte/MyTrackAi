@@ -42,6 +42,11 @@ export function AddTaskDialog() {
   const [category, setCategory] = useState('')
   const [title, setTitle] = useState('')
 
+  // Auto-Sync State
+  const [platform, setPlatform] = useState('github')
+  const [handle, setHandle] = useState('')
+  const [goal, setGoal] = useState('1')
+
   // New Category State
   const [isAddingCategory, setIsAddingCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -76,10 +81,17 @@ export function AddTaskDialog() {
       program: category || (storeCategories[0]?.name ?? 'General'), 
       cadence: capitalizedFrequency, 
       days: frequency === 'weekly' ? days : undefined, 
-      streak: 0 
+      streak: 0,
+      // Pass the new tracking data to the store:
+      tracking: tracking,
+      platform: tracking === 'auto' ? platform : undefined,
+      handle: tracking === 'auto' ? handle : undefined,
+      goal: tracking === 'auto' ? Number(goal) : undefined
     }); 
     
     setTitle(''); 
+    setHandle(''); // Reset handle
+    setGoal('1');  // Reset goal
     setOpen(false) 
   }
 
@@ -147,7 +159,8 @@ export function AddTaskDialog() {
               <div className="grid gap-4 sm:grid-cols-[1fr_1fr_120px]">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="platform">Platform</Label>
-                  <Select defaultValue="github">
+                  {/* Wired up the platform Select */}
+                  <Select value={platform} onValueChange={setPlatform}>
                     <SelectTrigger id="platform" className="bg-background/50"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="github"><span className="flex items-center gap-2"><GitFork className="size-4" /> GitHub</span></SelectItem>
@@ -158,11 +171,13 @@ export function AddTaskDialog() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="handle">Username / handle</Label>
-                  <Input id="handle" placeholder="your-handle" className="bg-background/50" />
+                  {/* Wired up the handle Input */}
+                  <Input id="handle" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="your-handle" className="bg-background/50" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="goal">Daily goal</Label>
-                  <Input id="goal" type="number" min="1" placeholder="2" className="bg-background/50" />
+                  {/* Wired up the goal Input */}
+                  <Input id="goal" value={goal} onChange={(e) => setGoal(e.target.value)} type="number" min="1" placeholder="2" className="bg-background/50" />
                 </div>
               </div>
             </div>
@@ -253,7 +268,7 @@ export function AddTaskDialog() {
         </div>
         <DialogFooter className="border-t border-border/70 bg-background/20 px-6 py-4">
           <DialogClose render={<Button variant="ghost">Cancel</Button>} />
-          <Button onClick={createTask} disabled={!title.trim() || storeCategories.length === 0}>Create task</Button>
+          <Button onClick={createTask} disabled={!title.trim() || storeCategories.length === 0 || (tracking === 'auto' && !handle.trim())}>Create task</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

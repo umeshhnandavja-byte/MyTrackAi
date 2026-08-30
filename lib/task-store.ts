@@ -12,7 +12,12 @@ export type TrackTask = {
   days?: string[]
   streak: number
   completed: boolean
-  lastCompletedAt?: string | null // <--- We track the exact time it was done
+  lastCompletedAt?: string | null 
+  // --- Auto-Sync Fields ---
+  tracking?: string
+  platform?: string
+  handle?: string
+  goal?: number
 }
 
 const STORAGE_KEY = 'mytrack_local_tasks'
@@ -141,6 +146,11 @@ export async function addTask(taskData: Omit<TrackTask, 'id' | 'completed' | 'la
       days: taskData.days || null,
       currentStreak: taskData.streak,
       user_id: user.id,
+      // Pass the new Auto-Sync data to Supabase
+      tracking: taskData.tracking || 'manual',
+      platform: taskData.platform || null,
+      handle: taskData.handle || null,
+      goal: taskData.goal || null
     })
     .select()
     .single()
@@ -154,7 +164,12 @@ export async function addTask(taskData: Omit<TrackTask, 'id' | 'completed' | 'la
       days: data.days || [],
       streak: data.currentStreak, 
       completed: t.completed,
-      lastCompletedAt: t.lastCompletedAt
+      lastCompletedAt: t.lastCompletedAt,
+      // Map returned Sync data back to state
+      tracking: data.tracking,
+      platform: data.platform,
+      handle: data.handle,
+      goal: data.goal
     } : t)
     saveLocal()
     notify()
@@ -200,7 +215,12 @@ export async function loadTasks() {
       days: t.days || null,
       currentStreak: t.streak,
       user_id: user.id,
-      lastCompletedAt: t.lastCompletedAt || null 
+      lastCompletedAt: t.lastCompletedAt || null,
+      // Migrate offline sync data to cloud
+      tracking: t.tracking || 'manual',
+      platform: t.platform || null,
+      handle: t.handle || null,
+      goal: t.goal || null
     }))
     
     await supabase.from('Task').insert(tasksToInsert)
@@ -221,7 +241,11 @@ export async function loadTasks() {
       days: dbTask.days || [],
       streak: dbTask.currentStreak,
       lastCompletedAt: dbTask.lastCompletedAt,
-      // 4. Determine if it should be checked right now!
+      // Load Auto-Sync stats from database
+      tracking: dbTask.tracking,
+      platform: dbTask.platform,
+      handle: dbTask.handle,
+      goal: dbTask.goal,
       completed: checkIsCompleted(dbTask.frequency, dbTask.lastCompletedAt),
     }))
     saveLocal() 
@@ -230,15 +254,12 @@ export async function loadTasks() {
 }
 
 export async function removeCategoryAndTasks(categoryName: string, categoryId: string) {
-  // 1. Remove the category locally and in Supabase (using your existing category removal)
   await removeCategory(categoryId)
 
-  // 2. Filter out tasks associated with this category locally
   tasks = tasks.filter(task => task.program?.toLowerCase() !== categoryName.toLowerCase())
   saveLocal()
   notify()
 
-  // 3. Delete tasks from Supabase tied to this program/category
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
@@ -246,6 +267,6 @@ export async function removeCategoryAndTasks(categoryName: string, categoryId: s
       .from('Task')
       .delete()
       .eq('user_id', user.id)
-      .ilike('program', categoryName) // Matches the category/program name case-insensitively
+      .ilike('category', categoryName) // Assuming category logic was updated here per your db schema
   }
 }
