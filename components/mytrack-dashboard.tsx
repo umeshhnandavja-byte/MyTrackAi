@@ -125,6 +125,22 @@ export function MyTrackDashboard({
   const currentHour = new Date().getHours()
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening'
 
+  const [formattedDate, setFormattedDate] = useState<string>('');
+
+  useEffect(() => {
+    // Generates the date on the client browser when it mounts
+    const today = new Date();
+    
+    const formatted = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(today);
+
+    setFormattedDate(formatted);
+  }, []);
+
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => setCursor({ x: event.clientX, y: event.clientY })
     window.addEventListener('pointermove', handlePointerMove, { passive: true })
@@ -160,7 +176,7 @@ export function MyTrackDashboard({
           <header className="flex h-20 items-center gap-4 border-b border-border/70 px-5 sm:px-8">
             <button className="lg:hidden" aria-label="Open navigation" onClick={() => setMobileOpen(!mobileOpen)}><Menu className="size-5" /></button>
             <div className="flex-1">
-              <p className="text-sm text-muted-foreground">Tuesday, October 24, 2024</p>
+              <p className="text-sm text-muted-foreground">{formattedDate}</p>
               <h1 className="text-xl font-semibold tracking-tight">{greeting}, {isAuthenticated ? userName.split(' ')[0] : profile.name.split(' ')[0]}.</h1>
             </div>
 
